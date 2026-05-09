@@ -3,7 +3,7 @@ package lrucache_test
 import (
 	"testing"
 
-	"codeberg.org/AnthonyLonsMax/lrucache"
+	"github.com/AnthonyLonsMax/lrucache"
 )
 
 func TestAddElements(t *testing.T) {
@@ -34,8 +34,8 @@ func TestGetMovesToFront(t *testing.T) {
 	lru.Put(1, 10)
 	lru.Put(2, 20)
 	lru.Put(3, 30)
-	lru.Get(1)                    // move 1 to front
-	lru.Put(4, 40)                // should evict 2 (LRU), not 1
+	lru.Get(1)     // move 1 to front
+	lru.Put(4, 40) // should evict 2 (LRU), not 1
 	if _, ok := lru.Get(2); ok {
 		t.Fatalf("expected key 2 to be evicted")
 	}

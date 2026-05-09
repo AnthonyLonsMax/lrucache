@@ -5,7 +5,7 @@ Generic thread-safe LRU (Least Recently Used) cache for Go.
 ## Usage
 
 ```go
-import "codeberg.org/AnthonyLonsMax/lrucache"
+import "github.com/AnthonyLonsMax/lrucache"
 
 c := lrucache.New[string, int](100) // capacity
 

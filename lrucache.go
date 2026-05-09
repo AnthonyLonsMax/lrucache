@@ -34,104 +34,77 @@ func New[K comparable, V any](capacity int) *Cache[K, V] {
 }
 
 // Get return the value of the entry base on the key after that the
-// element it's moved on front of the cache.If no key are found returns nil.
-func (c *Cache[K, V]) Get(key K) *V {
-	c.rw.RLock()
+// element it's moved on front of the cache.
+func (c *Cache[K, V]) Get(key K) (V, bool) {
+	c.rw.Lock()
+	defer c.rw.Unlock()
 	e, ok := c.mapKey[key]
-	c.rw.RUnlock()
-	if ok {
-		c.rw.Lock()
-		defer c.rw.Unlock()
-		kv := e.Value.(*entry[K, V])
-		c.elements.Remove(e)
-		c.elements.PushFront(e)
-		return &kv.value
+	if !ok {
+		var zero V
+		return zero, false
 	}
-	return nil
+	c.elements.MoveToFront(e)
+	return e.Value.(*entry[K, V]).value, true
 }
 
 // Contains checks the key existence on the cache if exists the
 // element it's moved on front of the cache.
 func (c *Cache[K, V]) Contains(key K) bool {
-	c.rw.RLocker()
+	c.rw.Lock()
+	defer c.rw.Unlock()
 	e, ok := c.mapKey[key]
-	c.rw.RUnlock()
-	if ok {
-		c.rw.Lock()
-		defer c.rw.Unlock()
-		c.elements.Remove(e)
-		c.elements.PushFront(e)
-		return true
+	if !ok {
+		return false
 	}
-	return false
+	c.elements.MoveToFront(e)
+	return true
 }
 
 // Put insert a new entry in the cache if the key it's already found an update it's made
 // element it's moved on front of the cache.
 func (c *Cache[K, V]) Put(key K, value V) {
-	c.rw.RLock()
-	e, ok := c.mapKey[key]
-	c.rw.RUnlock()
-	if ok { // If the key it's already found for avoid duplicates keys
-		c.rw.Lock()
-		defer c.rw.Unlock()
-		kv := e.Value.(*entry[K, V])
-		kv.value = value
-		c.elements.Remove(e)
-		c.elements.PushFront(e)
+	c.rw.Lock()
+	defer c.rw.Unlock()
+	if e, ok := c.mapKey[key]; ok {
+		e.Value.(*entry[K, V]).value = value
+		c.elements.MoveToFront(e)
 		return
 	}
-	kv := &entry[K, V]{key: key, value: value}
-	c.rw.Lock()
-	e = c.elements.PushFront(kv)
+	e := c.elements.PushFront(&entry[K, V]{key: key, value: value})
 	c.mapKey[key] = e
-	c.rw.Unlock()
-	c.rw.RLock()
-	legth := c.elements.Len()
-	c.rw.RUnlock()
-	if legth > c.capacity {
-		c.rw.Lock()
-		defer c.rw.Lock()
+	if c.elements.Len() > c.capacity {
 		e = c.elements.Back()
 		c.elements.Remove(e)
-		kv = e.Value.(*entry[K, V])
-		delete(c.mapKey, kv.key)
+		delete(c.mapKey, e.Value.(*entry[K, V]).key)
 	}
 }
 
 // Update an entry if exists the element
 // it's moved on front of the cache.
 func (c *Cache[K, V]) Update(key K, value V) {
-	c.rw.RLock()
-	e, ok := c.mapKey[key]
-	c.rw.RUnlock()
-	if ok {
-		c.rw.Lock()
-		defer c.rw.Unlock()
-		kv := e.Value.(*entry[K, V])
-		kv.value = value
-		c.elements.Remove(e)
+	c.rw.Lock()
+	defer c.rw.Unlock()
+	if e, ok := c.mapKey[key]; ok {
+		e.Value.(*entry[K, V]).value = value
 		c.elements.MoveToFront(e)
 	}
 }
 
 // Delete removes an entry base on the key.
 func (c *Cache[K, V]) Delete(key K) {
-	c.rw.RLock()
-	e, ok := c.mapKey[key]
-	c.rw.RUnlock()
-	if ok {
-		c.rw.Lock()
-		defer c.rw.Unlock()
-		kv := e.Value.(*entry[K, V])
+	c.rw.Lock()
+	defer c.rw.Unlock()
+	if e, ok := c.mapKey[key]; ok {
 		c.elements.Remove(e)
-		delete(c.mapKey, kv.key)
+		delete(c.mapKey, key)
 	}
 }
 
 // Iterator over the entries in the cache
 func (c *Cache[K, V]) All() iter.Seq2[K, V] {
 	return func(yield func(K, V) bool) {
+		c.rw.RLock()
+		defer c.rw.RUnlock()
 		for e := c.elements.Front(); e != nil; e = e.Next() {
 			kv := e.Value.(*entry[K, V])
 			if !yield(kv.key, kv.value) {

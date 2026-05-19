@@ -1,0 +1,232 @@
+version: "2"
+
+run:
+  timeout: 5m
+  issues-exit-code: 1
+  tests: true
+  go: "1.26"
+
+output:
+  formats:
+    colored-line-number:
+      path: stdout
+  print-issued-lines: true
+  print-linter-name: true
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+  govet:
+    enable-all: true
+    disable:
+      - fieldalignment
+      - shadow
+  gocyclo:
+    min-complexity: 15
+  gocognit:
+    min-complexity: 20
+  nestif:
+    min-complexity: 5
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+  godot:
+    scope: declarations
+  revive:
+    rules:
+      - name: blank-imports
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: dot-imports
+      - name: error-return
+      - name: error-strings
+      - name: error-naming
+      - name: exported
+      - name: if-return
+      - name: increment-decrement
+      - name: var-naming
+      - name: var-declaration
+      - name: package-comments
+      - name: range
+      - name: receiver-naming
+      - name: time-naming
+      - name: unexported-return
+      - name: indent-error-flow
+      - name: errorf
+      - name: empty-block
+      - name: superfluous-ellipsis
+      - name: unused-parameter
+      - name: unreachable-code
+      - name: redefines-builtin-id
+      - name: confusing-naming
+      - name: get-return
+      - name: atomic
+      - name: constant-logical-expr
+      - name: bool-literal-in-expr
+      - name: early-return
+      - name: unexported-naming
+      - name: useless-break
+      - name: waitgroup-by-value
+      - name: unconditional-recursion
+      - name: identical-branches
+      - name: defer
+      - name: deep-exit
+      - name: imports-blacklist
+      - name: range-val-address
+      - name: range-val-in-closure
+      - name: struct-tag
+      - name: modifies-parameter
+      - name: modifies-value-receiver
+  goimports:
+    local-prefixes: github.com/AnthonyLonsMax
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - style
+      - performance
+      - opinionated
+    disabled-checks:
+      - ifElseChain
+      - unnamedResult
+      - whyNoLint
+  whitespace:
+    multi-if: false
+    multi-func: false
+  wsl_v5:
+    strict-append: true
+    allow-assign-and-call: true
+    force-case-trailing-whitespace: 0
+  wrapcheck:
+    ignoreSigs:
+      - .Errorf(
+      - errors.New(
+      - errors.Unwrap(
+      - errors.Join(
+      - .Wrap(
+      - .Wrapf(
+      - .WithMessage(
+      - .WithMessagef(
+      - .WithStack(
+  forbidigo:
+    forbid:
+      - ^fmt\.Print.*$
+      - ^print.*$
+      - ^println.*$
+      - ^panic.*$
+      - ^log\.Fatal.*$
+  paralleltest:
+    ignore-missing: false
+  tagalign:
+    align: true
+    sort: true
+  musttag:
+    functions: []
+  perfsprint:
+    int-conversion: true
+  mnd:
+    ignored-files:
+      - "*_test.go"
+    ignored-functions:
+      - strconv.Format*
+      - strconv.Parse*
+      - strconv.Atoi
+      - os.*
+      - math.*
+      - time.Sleep
+    ignored-numbers:
+      - "0"
+      - "1"
+      - "2"
+  errorlint:
+    errorf: true
+    asserts: true
+    comparison: true
+  unused:
+    check-exported: false
+  nonamedreturns:
+    allowed: false
+  testifylint:
+    enable-all: true
+  dupword:
+    ignore: []
+  intrange:
+    enabled: true
+  loggercheck:
+    require-string-key: false
+    no-printf-like: true
+  reassign:
+    patterns:
+      - .*,
+      - :=
+  mirror:
+    enabled: true
+  usestdlibvars:
+    enabled: true
+
+formatters:
+  enable:
+    - gofmt
+    - gofumpt
+    - goimports
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - staticcheck
+    - unused
+    - revive
+    - gosec
+    - gocyclo
+    - gocognit
+    - gocritic
+    - bodyclose
+    - noctx
+    - whitespace
+    - wsl_v5
+    - forbidigo
+    - thelper
+    - paralleltest
+    - prealloc
+    - unconvert
+    - wastedassign
+    - nilnil
+    - copyloopvar
+    - durationcheck
+    - errname
+    - errorlint
+    - forcetypeassert
+    - goconst
+    - godot
+    - makezero
+    - mirror
+    - musttag
+    - nestif
+    - nilerr
+    - nonamedreturns
+    - perfsprint
+    - reassign
+    - tagalign
+    - usetesting
+    - usestdlibvars
+    - wrapcheck
+    - dupword
+    - intrange
+    - testifylint
+    - loggercheck
+    - mnd
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  exclude-dirs:
+    - vendor
+    - third_party
+    - .git
+    - .github
+  exclude-files:
+    - ".*\\.gen\\.go$"
+    - ".*\\.pb\\.go$"
+    - ".*\\.pb\\.gw\\.go$"
+    - ".*_string\\.go$"

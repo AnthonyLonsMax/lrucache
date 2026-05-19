@@ -1,4 +1,4 @@
-// Provides a generic thread safe implementation of the
+// Package lrucache provides a generic thread safe implementation of the
 // Least Recently Used algorithm for a cache with cache eviction policies
 // which means if insert operations exceds the cache size the less frecuent
 // item it's removed.
@@ -15,6 +15,7 @@ type entry[K comparable, V any] struct {
 	value V
 }
 
+// Cache provides the lruchache implementation.
 type Cache[K comparable, V any] struct {
 	capacity int
 
@@ -38,13 +39,23 @@ func New[K comparable, V any](capacity int) *Cache[K, V] {
 func (c *Cache[K, V]) Get(key K) (V, bool) {
 	c.rw.Lock()
 	defer c.rw.Unlock()
+
 	e, ok := c.mapKey[key]
+
+	var zero V
+
 	if !ok {
-		var zero V
 		return zero, false
 	}
+
 	c.elements.MoveToFront(e)
-	return e.Value.(*entry[K, V]).value, true
+	ele, ok := e.Value.(*entry[K, V])
+
+	if !ok {
+		return zero, false
+	}
+
+	return ele.value, true
 }
 
 // Contains checks the key existence on the cache if exists the
@@ -52,11 +63,15 @@ func (c *Cache[K, V]) Get(key K) (V, bool) {
 func (c *Cache[K, V]) Contains(key K) bool {
 	c.rw.Lock()
 	defer c.rw.Unlock()
+
 	e, ok := c.mapKey[key]
+
 	if !ok {
 		return false
 	}
+
 	c.elements.MoveToFront(e)
+
 	return true
 }
 
@@ -65,17 +80,33 @@ func (c *Cache[K, V]) Contains(key K) bool {
 func (c *Cache[K, V]) Put(key K, value V) {
 	c.rw.Lock()
 	defer c.rw.Unlock()
+
 	if e, ok := c.mapKey[key]; ok {
-		e.Value.(*entry[K, V]).value = value
+		ele, ok := e.Value.(*entry[K, V])
+		if !ok {
+			panic("invalid type cohercion")
+		}
+
+		ele.value = value
+
 		c.elements.MoveToFront(e)
+
 		return
 	}
+
 	e := c.elements.PushFront(&entry[K, V]{key: key, value: value})
 	c.mapKey[key] = e
+
 	if c.elements.Len() > c.capacity {
 		e = c.elements.Back()
 		c.elements.Remove(e)
-		delete(c.mapKey, e.Value.(*entry[K, V]).key)
+		ele, ok := e.Value.(*entry[K, V])
+
+		if !ok {
+			panic("invalid type cohercion")
+		}
+
+		delete(c.mapKey, ele.key)
 	}
 }
 
@@ -84,8 +115,16 @@ func (c *Cache[K, V]) Put(key K, value V) {
 func (c *Cache[K, V]) Update(key K, value V) {
 	c.rw.Lock()
 	defer c.rw.Unlock()
+
 	if e, ok := c.mapKey[key]; ok {
-		e.Value.(*entry[K, V]).value = value
+		ele, ok := e.Value.(*entry[K, V])
+
+		if !ok {
+			panic("invalid type cohercion")
+		}
+
+		ele.value = value
+
 		c.elements.MoveToFront(e)
 	}
 }
@@ -94,19 +133,25 @@ func (c *Cache[K, V]) Update(key K, value V) {
 func (c *Cache[K, V]) Delete(key K) {
 	c.rw.Lock()
 	defer c.rw.Unlock()
+
 	if e, ok := c.mapKey[key]; ok {
 		c.elements.Remove(e)
 		delete(c.mapKey, key)
 	}
 }
 
-// Iterator over the entries in the cache
+// All returns an iterator over the entries in the cache.
 func (c *Cache[K, V]) All() iter.Seq2[K, V] {
 	return func(yield func(K, V) bool) {
 		c.rw.RLock()
 		defer c.rw.RUnlock()
+
 		for e := c.elements.Front(); e != nil; e = e.Next() {
-			kv := e.Value.(*entry[K, V])
+			kv, ok := e.Value.(*entry[K, V])
+			if !ok {
+				panic("invalid type cohercion")
+			}
+
 			if !yield(kv.key, kv.value) {
 				return
 			}
